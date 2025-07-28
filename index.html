@@ -1,0 +1,2341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spinning Actor Simulator</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for Inter font and general layout */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5; /* Light gray background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 16px; /* More rounded corners */
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            max-width: 900px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            align-items: center;
+        }
+        canvas {
+            background-color: #e0e7ff; /* Light blue for canvas */
+            border-radius: 12px;
+            border: 2px solid #a7baff;
+            display: block;
+            margin-bottom: 20px;
+            width: 250px; /* Fixed width for the spinning actor */
+            height: 250px; /* Fixed height for the spinning actor */
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            width: 100%;
+        }
+        .info-card {
+            background-color: #f8fafc; /* Lighter background for cards */
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+            text-align: center;
+        }
+        .info-card h3 {
+            font-weight: 600;
+            color: #4a5568;
+            margin-bottom: 5px;
+        }
+        .info-card p {
+            font-size: 1.1em;
+            color: #2d3748;
+            font-weight: 700;
+        }
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .btn {
+            padding: 12px 25px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        .btn-primary {
+            background-color: #4f46e5; /* Indigo */
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #4338ca;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+        .btn-secondary {
+            background-color: #6b7280; /* Gray */
+            color: white;
+        }
+        .btn-secondary:hover {
+            background-color: #4b5563;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+        .message-box {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #fff;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            display: none; /* Hidden by default */
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        .message-box p {
+            font-size: 1.1em;
+            color: #333;
+        }
+        .message-box button {
+            background-color: #4f46e5;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .message-box button:hover {
+            background-color: #4338ca;
+        }
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            display: none; /* Hidden by default */
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+            max-width: 400px;
+            margin-bottom: 20px;
+        }
+        .input-group input {
+            flex-grow: 1;
+            padding: 10px 15px;
+            border: 1px solid #cbd5e0;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+        .highest-grossing-section {
+            width: 100%;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+        }
+        .highest-grossing-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .highest-grossing-list li {
+            background-color: #f8fafc;
+            border-radius: 8px;
+            padding: 10px 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
+        }
+        .highest-grossing-list li:last-child {
+            margin-bottom: 0;
+        }
+        .highest-grossing-list li .movie-title {
+            font-weight: 600;
+            color: #2d3748;
+        }
+        .highest-grossing-list li .collection-amount {
+            font-weight: 700;
+            color: #4f46e5;
+        }
+        .critic-review-text {
+            font-style: italic;
+            color: #555;
+            margin-top: 10px;
+            font-size: 0.95em;
+        }
+        /* Home Screen Styles */
+        .home-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+            padding: 50px;
+            text-align: center;
+        }
+        .home-screen h1 {
+            font-size: 2.5em;
+            color: #333;
+        }
+        .home-screen .btn {
+            width: 200px;
+        }
+        /* Game Screen Styles */
+        .game-screen {
+            display: none; /* Hidden by default */
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            width: 100%;
+        }
+        .user-id-display {
+            font-size: 0.8em;
+            color: #666;
+            margin-top: 10px;
+            word-break: break-all;
+            text-align: center;
+            padding: 5px 10px;
+            background-color: #e0e7ff;
+            border-radius: 8px;
+        }
+        .loading-indicator {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            font-size: 1.5em;
+            color: #4f46e5;
+            display: none; /* Hidden by default */
+        }
+
+        /* Modal Styles (General for all new modals) */
+        .modal-base {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.25);
+            z-index: 1001;
+            display: none; /* Hidden by default */
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            text-align: center;
+            max-width: 600px;
+            width: 90%;
+            border: 2px solid #4f46e5;
+            max-height: 90vh; /* Limit height for scrollability */
+            overflow-y: auto; /* Enable scrolling for content overflow */
+        }
+        .modal-base h2 {
+            font-size: 1.8em;
+            color: #333;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+        .modal-base .btn-close {
+            background-color: #ef4444; /* Red */
+            color: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-top: 20px;
+        }
+        .modal-base .btn-close:hover {
+            background-color: #dc2626;
+        }
+
+        /* Specific Modal Styles */
+        .promotion-options, .script-offers-list, .investment-options {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 100%;
+        }
+        .promotion-option-btn, .script-offer-card, .investment-option-card {
+            background-color: #e0e7ff; /* Light blue */
+            color: #3730a3; /* Darker blue */
+            padding: 15px 20px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            border: 1px solid #a7baff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        .promotion-option-btn:hover, .script-offer-card:hover, .investment-option-card:hover {
+            background-color: #c7d2fe;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        .promotion-option-btn strong, .script-offer-card strong, .investment-option-card strong {
+            font-size: 1.2em;
+            margin-bottom: 5px;
+        }
+        .promotion-option-btn span, .script-offer-card span, .investment-option-card span {
+            font-size: 0.9em;
+            color: #6366f1;
+        }
+        .script-offer-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            justify-content: center;
+            width: 100%;
+        }
+        .script-offer-actions button {
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .script-offer-actions .accept-btn {
+            background-color: #10b981; /* Green */
+            color: white;
+        }
+        .script-offer-actions .accept-btn:hover {
+            background-color: #059669;
+        }
+        .script-offer-actions .negotiate-btn {
+            background-color: #f59e0b; /* Amber */
+            color: white;
+        }
+        .script-offer-actions .negotiate-btn:hover {
+            background-color: #d97706;
+        }
+        .script-offer-actions .reject-btn {
+            background-color: #ef4444; /* Red */
+            color: white;
+        }
+        .script-offer-actions .reject-btn:hover {
+            background-color: #dc2626;
+        }
+
+        .news-feed {
+            width: 100%;
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #e0e7ff;
+            border-radius: 12px;
+            border: 2px solid #a7baff;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        }
+        .news-feed h2 {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: #3730a3;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .news-item {
+            background-color: #f8fafc;
+            border-radius: 8px;
+            padding: 10px 15px;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+            color: #4a5568;
+            border-left: 4px solid #4f46e5;
+        }
+        .news-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .achievements-list {
+            list-style: none;
+            padding: 0;
+            width: 100%;
+        }
+        .achievements-list li {
+            background-color: #f0fdf4; /* Light green for unlocked */
+            border-left: 5px solid #22c55e; /* Green border */
+            border-radius: 8px;
+            padding: 12px 20px;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #166534;
+            text-align: left;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .achievements-list li.locked {
+            background-color: #fef2f2; /* Light red for locked */
+            border-left: 5px solid #ef4444; /* Red border */
+            color: #991b1b;
+        }
+        .achievements-list li span.status {
+            font-size: 0.8em;
+            font-weight: normal;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Home Screen -->
+        <div id="homeScreen" class="home-screen">
+            <h1>Welcome to Actor Simulator!</h1>
+            <button id="newGameBtn" class="btn btn-primary">New Game</button>
+            <button id="loadGameBtn" class="btn btn-secondary">Load Game</button>
+            <p class="user-id-display">Your User ID: <span id="currentUserId">Loading...</span></p>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="gameScreen" class="game-screen">
+            <h1 class="text-3xl font-bold text-gray-800 mb-4">Spinning Actor Simulator</h1>
+
+            <!-- Actor Name Input -->
+            <div class="input-group">
+                <input type="text" id="actorNameInput" placeholder="Enter Actor Name" class="focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <button id="saveNameBtn" class="btn btn-primary">Save Name</button>
+            </div>
+
+            <!-- Canvas for the spinning actor -->
+            <canvas id="actorCanvas"></canvas>
+
+            <!-- Actor Information Display -->
+            <div class="info-grid">
+                <div class="info-card">
+                    <h3>Actor Name</h3>
+                    <p id="actorName">N/A</p>
+                </div>
+                <div class="info-card">
+                    <h3>Career Stage</h3>
+                    <p id="careerStage">Newcomer</p>
+                </div>
+                <div class="info-card">
+                    <h3>Star Power</h3>
+                    <p id="starPowerDisplay">0</p>
+                </div>
+                <div class="info-card">
+                    <h3>Current Money</h3>
+                    <p id="currentMoneyDisplay">0 BDT</p>
+                </div>
+                <div class="info-card">
+                    <h3>Current Year</h3>
+                    <p id="currentYearDisplay">2025</p>
+                </div>
+                <div class="info-card">
+                    <h3>Total Movies</h3>
+                    <p id="totalMovies">0</p>
+                </div>
+                <div class="info-card">
+                    <h3>Total Awards</h3>
+                    <p id="totalAwards">0</p>
+                </div>
+                <div class="info-card">
+                    <h3>Total Sequels</h3>
+                    <p id="totalSequels">0</p>
+                </div>
+                <div class="info-card">
+                    <h3>Drama Skill</h3>
+                    <p id="dramaSkillDisplay">0</p>
+                </div>
+                <div class="info-card">
+                    <h3>Comedy Skill</h3>
+                    <p id="comedySkillDisplay">0</p>
+                </div>
+                <div class="info-card">
+                    <h3>Action Skill</h3>
+                    <p id="actionSkillDisplay">0</p>
+                </div>
+                <div class="info-card">
+                    <h3>Charisma</h3>
+                    <p id="charismaDisplay">0</p>
+                </div>
+                <div class="info-card">
+                    <h3>Last Movie Title</h3>
+                    <p id="lastMovieTitle">N/A</p>
+                </div>
+                <div class="info-card">
+                    <h3>Last Movie Year</h3>
+                    <p id="lastMovieYear">N/A</p>
+                </div>
+                <div class="info-card">
+                    <h3>Last Movie Budget</h3>
+                    <p id="lastBudget">0 BDT</p>
+                </div>
+                <div class="info-card">
+                    <h3>Last Opening Collection</h3>
+                    <p id="lastOpeningCollection">0 BDT</p>
+                </div>
+                <div class="info-card">
+                    <h3>Last Pre-release Collection</h3>
+                    <p id="lastPreReleaseCollection">0 BDT</p>
+                </div>
+                <div class="info-card">
+                    <h3>Last Box Office Collection</h3>
+                    <p id="lastBoxOfficeCollection">0 BDT</p>
+                </div>
+                <div class="info-card">
+                    <h3>Last Movie Awards</h3>
+                    <p id="lastAwards">No</p>
+                </div>
+                <div class="info-card">
+                    <h3>Last Movie Sequel</h3>
+                    <p id="lastSequel">No</p>
+                </div>
+                <div class="info-card">
+                    <h3>Last Movie Verdict</h3>
+                    <p id="lastVerdict">N/A</p>
+                </div>
+                <div class="info-card">
+                    <h3>Last Movie Rating (1-10)</h3>
+                    <p id="lastRating">N/A</p>
+                </div>
+                <div class="info-card">
+                    <h3>Last Movie Genre</h3>
+                    <p id="lastMovieGenre">N/A</p>
+                </div>
+                <div class="info-card col-span-full">
+                    <h3>Last Critic Review</h3>
+                    <p id="lastCriticReview" class="critic-review-text">N/A</p>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="button-group">
+                <button id="newMovieBtn" class="btn btn-primary">✨ New Movie</button>
+                <button id="workHardBtn" class="btn btn-primary">Work Hard</button>
+                <button id="investmentsBtn" class="btn btn-primary">💰 Investments</button>
+                <button id="achievementsBtn" class="btn btn-primary">🏆 Achievements</button>
+                <button id="nextYearBtn" class="btn btn-secondary">Next Year</button>
+                <button id="saveGameBtn" class="btn btn-primary">Save Game</button>
+                <button id="resetBtn" class="btn btn-secondary">Reset Simulation</button>
+                <button id="backToHomeBtn" class="btn btn-secondary">Back to Home</button>
+            </div>
+
+            <!-- Industry News Feed -->
+            <div class="news-feed">
+                <h2 class="text-xl font-bold text-gray-700 mb-4 text-center">Industry Buzz</h2>
+                <div id="newsFeedContent">
+                    <p class="news-item">Welcome to the Bangladeshi Film Industry!</p>
+                </div>
+            </div>
+
+            <!-- Highest Grossing Movies Section -->
+            <div class="highest-grossing-section">
+                <h2 class="text-2xl font-bold text-gray-700 mb-4 text-center">Highest Grossing Movies</h2>
+                <ul id="highestGrossingList" class="highest-grossing-list">
+                    <!-- Highest grossing movies will be listed here -->
+                    <li class="text-gray-500 text-center">No movies yet.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Message Box for alerts -->
+    <div id="messageOverlay" class="overlay"></div>
+    <div id="messageBox" class="message-box">
+        <p id="messageText"></p>
+        <button id="messageCloseBtn">OK</button>
+    </div>
+
+    <!-- Promotion Modal -->
+    <div id="promotionOverlay" class="overlay"></div>
+    <div id="promotionModal" class="modal-base">
+        <h2 class="text-indigo-700">Promote Your Movie!</h2>
+        <p class="promotion-current-money">Your Money: <span id="promoCurrentMoney">0 BDT</span></p>
+        <div id="promotionOptionsContainer" class="promotion-options">
+            <!-- Promotion options will be dynamically added here -->
+        </div>
+        <button id="skipPromotionBtn" class="promotion-skip-btn">Skip Promotion</button>
+    </div>
+
+    <!-- Script Offers Modal -->
+    <div id="scriptOffersOverlay" class="overlay"></div>
+    <div id="scriptOffersModal" class="modal-base">
+        <h2 class="text-indigo-700">New Script Offers!</h2>
+        <p>Choose a script for your next movie or try to negotiate a better deal.</p>
+        <div id="scriptOffersList" class="script-offers-list">
+            <!-- Script offers will be dynamically added here -->
+        </div>
+        <button id="noOffersBtn" class="btn-close">Take a Break (No Movie This Year)</button>
+    </div>
+
+    <!-- Work Hard Options Modal -->
+    <div id="workHardOverlay" class="overlay"></div>
+    <div id="workHardModal" class="modal-base">
+        <h2 class="text-indigo-700">Work Hard & Improve Skills</h2>
+        <p>Choose which skill to focus on or do general training.</p>
+        <div class="promotion-options">
+            <button class="promotion-option-btn" data-skill="drama"><strong>Improve Drama Skill</strong> <span>(Boosts Drama movies)</span></button>
+            <button class="promotion-option-btn" data-skill="comedy"><strong>Improve Comedy Skill</strong> <span>(Boosts Comedy movies)</span></button>
+            <button class="promotion-option-btn" data-skill="action"><strong>Improve Action Skill</strong> <span>(Boosts Action movies)</span></button>
+            <button class="promotion-option-btn" data-skill="charisma"><strong>Improve Charisma</strong> <span>(Boosts all movies, helps endorsements)</span></button>
+            <button class="promotion-option-btn" data-skill="general"><strong>General Training</strong> <span>(Random skill improvement)</span></button>
+        </div>
+        <button id="closeWorkHardModalBtn" class="btn-close">Close</button>
+    </div>
+
+    <!-- Investments Modal -->
+    <div id="investmentsOverlay" class="overlay"></div>
+    <div id="investmentsModal" class="modal-base">
+        <h2 class="text-indigo-700">Investments</h2>
+        <p>Your Money: <span id="investmentsCurrentMoney">0 BDT</span></p>
+        <h3>Active Investments:</h3>
+        <ul id="activeInvestmentsList" class="list-disc list-inside text-left w-full">
+            <!-- Active investments will be listed here -->
+            <li class="text-gray-500">No active investments.</li>
+        </ul>
+        <h3 class="mt-4">New Investment Opportunities:</h3>
+        <div id="investmentOptionsContainer" class="investment-options">
+            <!-- Investment options will be dynamically added here -->
+        </div>
+        <button id="closeInvestmentsModalBtn" class="btn-close">Close</button>
+    </div>
+
+    <!-- Achievements Modal -->
+    <div id="achievementsOverlay" class="overlay"></div>
+    <div id="achievementsModal" class="modal-base">
+        <h2 class="text-indigo-700">Your Achievements</h2>
+        <ul id="achievementsList" class="achievements-list">
+            <!-- Achievements will be dynamically added here -->
+        </ul>
+        <button id="closeAchievementsModalBtn" class="btn-close">Close</button>
+    </div>
+
+
+    <!-- Loading Indicator -->
+    <div id="loadingIndicator" class="loading-indicator">
+        Loading...
+    </div>
+
+    <script type="module">
+        // Firebase Imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Firebase variables
+        let app;
+        let db;
+        let auth;
+        let userId;
+
+        // Your actual Firebase project configuration.
+        const firebaseConfig = {
+          apiKey: "AIzaSyBo6bpgG4B2fSObjtzl-btR7eiMDQDZA5I", // YOUR PROVIDED API KEY
+          authDomain: "actorsimulatorbd.firebaseapp.com",
+          projectId: "actorsimulatorbd",
+          storageBucket: "actorsimulatorbd.appspot.com",
+          messagingSenderId: "98016137075",
+          appId: "1:98016137075:web:8e5689df5a87e323f2234e",
+          measurementId: "G-T93M31BQVN"
+        };
+
+        const appId = firebaseConfig.appId; // Use the appId from your config
+        const initialAuthToken = null; // Keep this as null for anonymous sign-in
+
+        // Game state variables (single player)
+        let actor = {
+            name: "New Actor",
+            careerStage: 0, // 0: Newcomer, 1: Rising Star, 2: Established, 3: Superstar, 4: Legend
+            starPower: 10, // Initial star power for a newcomer (capped at 100)
+            money: 50000, // Starting money: 50,000 BDT
+            totalMovies: 0,
+            totalAwards: 0,
+            totalSequels: 0,
+            movieHistory: [], // Stores all movie details for highest grossing list
+            lastMovie: {
+                title: "N/A",
+                year: "N/A",
+                budget: 0,
+                openingCollection: 0,
+                preReleaseCollection: 0,
+                boxOfficeCollection: 0,
+                awards: false,
+                sequel: false,
+                verdict: "N/A",
+                rating: "N/A",
+                criticReview: "N/A",
+                genre: "N/A",
+                baseName: "",
+                sequelNumber: 0,
+                awardWon: "No" // Initialize with "No"
+            },
+            genreAffinities: {}, // Stores actor's affinity for different genres
+            dramaSkill: 1, // New skill attribute
+            comedySkill: 1, // New skill attribute
+            actionSkill: 1, // New skill attribute
+            charisma: 1, // New skill attribute
+            activeEndorsements: [], // Stores active endorsement deals
+            activeInvestments: [], // Stores active investments
+            playerAchievements: [] // Stores unlocked achievement IDs
+        };
+
+        let currentYear = 2025; // Starting year for the simulator
+        let generatedMovieNames = new Set(); // To ensure unique base movie names
+        let sequelTracker = {}; // Stores base movie name and its next sequel number and available year
+                               // Format: { "BaseMovieName": { nextSequelNum: 2, nextAvailableYear: 2027, maxParts: 3 } }
+        let industryNews = []; // Stores recent industry news for the news feed
+
+        // Career stage names
+        const careerStages = ["Newcomer", "Rising Star", "Established Actor", "Superstar", "Legend"];
+
+        // Genres
+        const genres = ["Action", "Drama", "Comedy", "Romance", "Thriller"];
+
+        // Genre Popularity (changes over time)
+        let genrePopularity = {
+            "Action": 1.0,
+            "Drama": 1.0,
+            "Comedy": 1.0,
+            "Romance": 1.0,
+            "Thriller": 1.0
+        };
+
+        // Promotion Options
+        const promotionOptions = [
+            {
+                name: "Social Media Blitz",
+                cost: 500000, // 5 Lakh BDT
+                hypeEffectMin: 1.05, // 5% to 15% boost for good movies
+                hypeEffectMax: 1.15,
+                riskChance: 0.10, // 10% chance of controversy
+                controversyEffectMin: 0.8, // 20% to 10% reduction for bad movies
+                controversyEffectMax: 0.9
+            },
+            {
+                name: "TV Ad Campaign",
+                cost: 2000000, // 20 Lakh BDT
+                hypeEffectMin: 1.15, // 15% to 30% boost
+                hypeEffectMax: 1.30,
+                riskChance: 0.05, // 5% chance of controversy
+                controversyEffectMin: 0.85, // 15% to 5% reduction
+                controversyEffectMax: 0.95
+            },
+            {
+                name: "Mega Premiere Event",
+                cost: 5000000, // 50 Lakh BDT
+                hypeEffectMin: 1.30, // 30% to 50% boost
+                hypeEffectMax: 1.50,
+                riskChance: 0.02, // 2% chance of controversy
+                controversyEffectMin: 0.90, // 10% to 0% reduction
+                controversyEffectMax: 1.0
+            }
+        ];
+
+        // Bangladeshi Awards
+        const bangladeshiAwards = [
+            "Best Movie (শ্রেষ্ঠ চলচ্চিত্র)",
+            "Best Actor (শ্রেষ্ঠ অভিনেতা)",
+            "Best Actress (শ্রেষ্ঠ অভিনেত্রী)",
+            "Best Director (শ্রেষ্ঠ পরিচালক)",
+            "Best Screenplay (শ্রেষ্ঠ চিত্রনাট্য)",
+            "Best Music (শ্রেষ্ঠ সঙ্গীত)",
+            "Best Cinematography (শ্রেষ্ঠ চিত্রগ্রহণ)"
+        ];
+
+        // Investment Types
+        const investmentTypes = [
+            {
+                id: "realEstate",
+                name: "Real Estate Investment",
+                costMultiplier: 0.5, // Relative to actor's money
+                minReturn: 1.1, // 10% return
+                maxReturn: 1.5, // 50% return
+                durationYears: 3,
+                risk: "Low",
+                description: "Invest in property. Steady, but slower returns."
+            },
+            {
+                id: "stockMarket",
+                name: "Stock Market Investment",
+                costMultiplier: 0.2,
+                minReturn: 0.5, // 50% loss
+                maxReturn: 2.5, // 150% return
+                durationYears: 1,
+                risk: "High",
+                description: "High risk, high reward. Can yield quick gains or losses."
+            },
+            {
+                id: "productionHouse",
+                name: "Start a Production House",
+                costMultiplier: 1.0,
+                minReturn: 0.8, // 20% loss
+                maxReturn: 3.0, // 200% return
+                durationYears: 5,
+                risk: "Medium",
+                description: "Fund your own movies! Long-term, potentially very profitable."
+            }
+        ];
+
+        // Achievements
+        const allAchievements = [
+            { id: "firstMovie", name: "First Movie!", description: "Release your first movie.", unlocked: false },
+            { id: "firstHit", name: "First Hit!", description: "Release your first 'Hit' movie.", unlocked: false },
+            { id: "firstBlockbuster", name: "First Blockbuster!", description: "Release your first 'Blockbuster' movie.", unlocked: false },
+            { id: "firstAward", name: "Award Winner!", description: "Win your first movie award.", unlocked: false },
+            { id: "reachedRisingStar", name: "Rising Star!", description: "Reach the 'Rising Star' career stage.", unlocked: false },
+            { id: "reachedEstablished", name: "Established Actor!", description: "Reach the 'Established Actor' career stage.", unlocked: false },
+            { id: "reachedSuperstar", name: "Superstar!", description: "Reach the 'Superstar' career stage.", unlocked: false },
+            { id: "reachedLegend", name: "Legend!", description: "Reach the 'Legend' career stage.", unlocked: false },
+            { id: "earned1Cr", name: "Millionaire!", description: "Accumulate 1 Crore BDT.", unlocked: false },
+            { id: "earned10Cr", name: "Multi-Millionaire!", description: "Accumulate 10 Crore BDT.", unlocked: false },
+            { id: "earned100Cr", name: "Billionaire!", description: "Accumulate 100 Crore BDT.", unlocked: false },
+            { id: "tenMovies", name: "Prolific Actor!", description: "Release 10 movies.", unlocked: false },
+            { id: "twentyMovies", name: "Veteran Actor!", description: "Release 20 movies.", unlocked: false },
+            { id: "fiveAwards", name: "Award Hoarder!", description: "Win 5 movie awards.", unlocked: false },
+            { id: "firstSequel", name: "Sequel Success!", description: "Release your first sequel.", unlocked: false }
+        ];
+
+
+        // UI Elements
+        const homeScreen = document.getElementById('homeScreen');
+        const gameScreen = document.getElementById('gameScreen');
+        const newGameBtn = document.getElementById('newGameBtn');
+        const loadGameBtn = document.getElementById('loadGameBtn');
+        const saveGameBtn = document.getElementById('saveGameBtn');
+        const backToHomeBtn = document.getElementById('backToHomeBtn');
+        const currentUserIdEl = document.getElementById('currentUserId');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+
+        const actorNameInputEl = document.getElementById('actorNameInput');
+        const saveNameBtn = document.getElementById('saveNameBtn');
+        const actorNameEl = document.getElementById('actorName');
+        const careerStageEl = document.getElementById('careerStage');
+        const starPowerDisplayEl = document.getElementById('starPowerDisplay');
+        const currentMoneyDisplayEl = document.getElementById('currentMoneyDisplay');
+        const currentYearDisplayEl = document.getElementById('currentYearDisplay');
+        const totalMoviesEl = document.getElementById('totalMovies');
+        const totalAwardsEl = document.getElementById('totalAwards');
+        const totalSequelsEl = document.getElementById('totalSequels');
+        const lastMovieTitleEl = document.getElementById('lastMovieTitle');
+        const lastMovieYearEl = document.getElementById('lastMovieYear');
+        const lastBudgetEl = document.getElementById('lastBudget');
+        const lastOpeningCollectionEl = document.getElementById('lastOpeningCollection');
+        const lastPreReleaseCollectionEl = document.getElementById('lastPreReleaseCollection');
+        const lastBoxOfficeCollectionEl = document.getElementById('lastBoxOfficeCollection');
+        const lastAwardsEl = document.getElementById('lastAwards');
+        const lastSequelEl = document.getElementById('lastSequel');
+        const lastVerdictEl = document.getElementById('lastVerdict');
+        const lastRatingEl = document.getElementById('lastRating');
+        const lastCriticReviewEl = document.getElementById('lastCriticReview');
+        const lastMovieGenreEl = document.getElementById('lastMovieGenre');
+
+        // New skill displays
+        const dramaSkillDisplayEl = document.getElementById('dramaSkillDisplay');
+        const comedySkillDisplayEl = document.getElementById('comedySkillDisplay');
+        const actionSkillDisplayEl = document.getElementById('actionSkillDisplay');
+        const charismaDisplayEl = document.getElementById('charismaDisplay');
+
+
+        const newMovieBtn = document.getElementById('newMovieBtn');
+        const workHardBtn = document.getElementById('workHardBtn');
+        const nextYearBtn = document.getElementById('nextYearBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const investmentsBtn = document.getElementById('investmentsBtn');
+        const achievementsBtn = document.getElementById('achievementsBtn');
+
+
+        const highestGrossingListEl = document.getElementById('highestGrossingList');
+        const newsFeedContentEl = document.getElementById('newsFeedContent');
+
+        const messageBox = document.getElementById('messageBox');
+        const messageText = document.getElementById('messageText');
+        const messageCloseBtn = document.getElementById('messageCloseBtn');
+        const messageOverlay = document.getElementById('messageOverlay');
+
+        // Promotion Modal UI Elements
+        const promotionModal = document.getElementById('promotionModal');
+        const promotionOverlay = document.getElementById('promotionOverlay');
+        const promoCurrentMoneyEl = document.getElementById('promoCurrentMoney');
+        const promotionOptionsContainer = document.getElementById('promotionOptionsContainer');
+        const skipPromotionBtn = document.getElementById('skipPromotionBtn');
+
+        // Script Offers Modal UI Elements
+        const scriptOffersModal = document.getElementById('scriptOffersModal');
+        const scriptOffersOverlay = document.getElementById('scriptOffersOverlay');
+        const scriptOffersList = document.getElementById('scriptOffersList');
+        const noOffersBtn = document.getElementById('noOffersBtn');
+
+        // Work Hard Options Modal UI Elements
+        const workHardModal = document.getElementById('workHardModal');
+        const workHardOverlay = document.getElementById('workHardOverlay');
+        const workHardOptionBtns = workHardModal.querySelectorAll('.promotion-option-btn');
+        const closeWorkHardModalBtn = document.getElementById('closeWorkHardModalBtn');
+
+        // Investments Modal UI Elements
+        const investmentsModal = document.getElementById('investmentsModal');
+        const investmentsOverlay = document.getElementById('investmentsOverlay');
+        const investmentsCurrentMoneyEl = document.getElementById('investmentsCurrentMoney');
+        const activeInvestmentsList = document.getElementById('activeInvestmentsList');
+        const investmentOptionsContainer = document.getElementById('investmentOptionsContainer');
+        const closeInvestmentsModalBtn = document.getElementById('closeInvestmentsModalBtn');
+
+        // Achievements Modal UI Elements
+        const achievementsModal = document.getElementById('achievementsModal');
+        const achievementsOverlay = document.getElementById('achievementsOverlay');
+        const achievementsListEl = document.getElementById('achievementsList');
+        const closeAchievementsModalBtn = document.getElementById('closeAchievementsModalBtn');
+
+
+        // Canvas elements for animation
+        const canvas = document.getElementById('actorCanvas');
+        const ctx = canvas.getContext('2d');
+        const actorWidth = 60;
+        const actorHeight = 100;
+        let rotationAngle = 0;
+        let animationFrameId;
+
+        // Bangladeshi Film Name Generation Components (Transliterated Bengali)
+        const bdAdjectives = ["Ochena", "Bhalobashar", "Shopner", "Opare", "Nirbashito", "Agni", "Bijoy", "Ojana", "Protishodh", "Niyoti", "Shundor", "Abegmoy", "Rongin", "Shanto", "Duronto", "Nishongo", "Porichito"];
+        const bdNouns = ["Bondhon", "Poth", "Jibon", "Golpo", "Shopno", "Protigya", "Somoy", "Alo", "Adhar", "Juddho", "Prem", "Maya", "Rong", "Hridoy", "Akash", "Mati", "Dunia", "Nodi", "Gaan"];
+        const bdSuffixes = ["Kotha", "Kahini", "Jatra", "Shongram", "Obhijan", "Chobi", "Dunia", "Nodi", "Gaan", "Bhalobasha", "Fera", "Din", "Raat", "Bela"];
+        const bdPrefixes = ["Amar", "Tomar", "Ek", "Shesh"];
+
+        // Critic Review Phrases (now used as fallback)
+        const positiveReviews = [
+            "A cinematic masterpiece! The acting is phenomenal.",
+            "Absolutely brilliant! A must-watch for everyone.",
+            "A triumph! The director's vision shines through.",
+            "Engaging from start to finish. A true gem of Bangladeshi cinema.",
+            "Outstanding performances and a captivating storyline. Highly recommended!",
+            "A powerful and emotional journey. This film will stay with you.",
+            "Fresh, innovative, and thoroughly entertaining. A new classic!",
+            "Every frame is a work of art. An unforgettable cinematic experience."
+        ];
+        const neutralReviews = [
+            "A decent effort with some commendable moments.",
+            "Watchable, but doesn't quite reach its full potential.",
+            "An average film that delivers what's expected, nothing more.",
+            "Solid performances but the plot feels a bit familiar.",
+            "It has its moments, but overall it's a mixed bag.",
+            "Competently made, but lacks that special spark.",
+            "Not bad, not great. A good time-pass for a casual watch."
+        ];
+        const negativeReviews = [
+            "A complete misfire. Disappointing on all fronts.",
+            "Uninspired and poorly executed. A forgettable experience.",
+            "Suffers from a weak script and unconvincing performances.",
+            "A tedious watch that struggles to find its footing.",
+            "Avoid at all costs. A wasted opportunity.",
+            "Flat and unengaging. The plot goes nowhere fast.",
+            "This film is a prime example of how not to make a movie."
+        ];
+
+        /**
+         * Initializes actor's genre affinities and skills randomly.
+         */
+        function initializeActorAttributes() {
+            actor.genreAffinities = {};
+            genres.forEach(genre => {
+                // Random affinity between 0.5 (low) and 1.5 (high)
+                actor.genreAffinities[genre] = 0.5 + Math.random();
+            });
+            actor.dramaSkill = 1 + Math.floor(Math.random() * 5); // 1-5
+            actor.comedySkill = 1 + Math.floor(Math.random() * 5);
+            actor.actionSkill = 1 + Math.floor(Math.random() * 5);
+            actor.charisma = 1 + Math.floor(Math.random() * 5);
+            console.log("Actor's genre affinities:", actor.genreAffinities);
+            console.log("Actor's skills:", actor.dramaSkill, actor.comedySkill, actor.actionSkill, actor.charisma);
+
+            // Initialize achievements to all false
+            actor.playerAchievements = allAchievements.map(ach => ({ ...ach, unlocked: false }));
+        }
+
+        /**
+         * Adds a news item to the industry buzz feed.
+         * @param {string} text The news message.
+         */
+        function addNewsItem(text) {
+            industryNews.unshift({ year: currentYear.toFixed(0), text: text }); // Add to the beginning
+            if (industryNews.length > 10) { // Keep only the last 10 news items
+                industryNews.pop();
+            }
+            updateNewsFeed();
+        }
+
+        /**
+         * Updates the news feed UI.
+         */
+        function updateNewsFeed() {
+            newsFeedContentEl.innerHTML = '';
+            if (industryNews.length === 0) {
+                newsFeedContentEl.innerHTML = '<p class="news-item">No recent industry buzz.</p>';
+            } else {
+                industryNews.forEach(item => {
+                    const p = document.createElement('p');
+                    p.classList.add('news-item');
+                    p.textContent = `[${item.year}] ${item.text}`;
+                    newsFeedContentEl.appendChild(p);
+                });
+            }
+        }
+
+        /**
+         * Checks and unlocks achievements.
+         * @param {string} achievementId The ID of the achievement to check.
+         * @param {string} message The message to display if unlocked.
+         */
+        function unlockAchievement(achievementId, message) {
+            const achievement = actor.playerAchievements.find(a => a.id === achievementId);
+            if (achievement && !achievement.unlocked) {
+                achievement.unlocked = true;
+                addNewsItem(`Achievement Unlocked: ${achievement.name}!`);
+                showMessageBox(`🏆 Achievement Unlocked: ${achievement.name}! ${message}`);
+            }
+        }
+
+        /**
+         * Shows the loading indicator.
+         */
+        function showLoading() {
+            loadingIndicator.style.display = 'flex';
+        }
+
+        /**
+         * Hides the loading indicator.
+         */
+        function hideLoading() {
+            loadingIndicator.style.display = 'none';
+        }
+
+        /**
+         * Displays a custom message box instead of alert().
+         * @param {string} message The message to display.
+         */
+        function showMessageBox(message) {
+            messageText.textContent = message;
+            messageBox.style.display = 'flex';
+            messageOverlay.style.display = 'block';
+        }
+
+        /**
+         * Hides the custom message box.
+         */
+        function hideMessageBox() {
+            messageBox.style.display = 'none';
+            messageOverlay.style.display = 'none';
+        }
+
+        // Event listener for message box close button
+        messageCloseBtn.addEventListener('click', hideMessageBox);
+        messageOverlay.addEventListener('click', hideMessageBox); // Close on overlay click
+
+        /**
+         * Shows a generic modal.
+         * @param {HTMLElement} modalElement The modal div.
+         * @param {HTMLElement} overlayElement The overlay div.
+         */
+        function showModal(modalElement, overlayElement) {
+            modalElement.style.display = 'flex';
+            overlayElement.style.display = 'block';
+        }
+
+        /**
+         * Hides a generic modal.
+         * @param {HTMLElement} modalElement The modal div.
+         * @param {HTMLElement} overlayElement The overlay div.
+         */
+        function hideModal(modalElement, overlayElement) {
+            modalElement.style.display = 'none';
+            overlayElement.style.display = 'none';
+        }
+
+        /**
+         * Shows the promotion modal.
+         */
+        function showPromotionModal() {
+            promoCurrentMoneyEl.textContent = formatBDT(actor.money);
+            promotionOptionsContainer.innerHTML = ''; // Clear previous options
+
+            promotionOptions.forEach(option => {
+                const button = document.createElement('button');
+                button.classList.add('promotion-option-btn');
+                button.innerHTML = `
+                    <strong>${option.name}</strong>
+                    <span>Cost: ${formatBDT(option.cost)}</span>
+                    <span>Hype: ${((option.hypeEffectMin - 1) * 100).toFixed(0)}% - ${((option.hypeEffectMax - 1) * 100).toFixed(0)}%</span>
+                    <span>Controversy Chance: ${(option.riskChance * 100).toFixed(0)}%</span>
+                `;
+                button.addEventListener('click', () => handlePromotionChoice(option));
+                promotionOptionsContainer.appendChild(button);
+            });
+
+            showModal(promotionModal, promotionOverlay);
+        }
+
+        /**
+         * Handles the player's promotion choice.
+         * @param {object|null} chosenOption The selected promotion option, or null if skipped.
+         */
+        async function handlePromotionChoice(chosenOption) {
+            hideModal(promotionModal, promotionOverlay);
+            let hypeMultiplier = 1.0;
+            let promotionMessage = "No promotion was done for this movie.";
+
+            if (chosenOption) {
+                if (actor.money < chosenOption.cost) {
+                    showMessageBox(`Not enough money for ${chosenOption.name}! You need ${formatBDT(chosenOption.cost)}, but you only have ${formatBDT(actor.money)}.`);
+                    // If not enough money, don't apply promotion and proceed without it
+                    await simulateNewMovie(hypeMultiplier, promotionMessage);
+                    return;
+                }
+
+                actor.money -= chosenOption.cost; // Deduct cost
+                promotionMessage = `${chosenOption.name} was performed for ${formatBDT(chosenOption.cost)}.`;
+
+                // Check for controversy
+                if (Math.random() < chosenOption.riskChance) {
+                    hypeMultiplier = chosenOption.controversyEffectMin + Math.random() * (chosenOption.controversyEffectMax - chosenOption.controversyEffectMin);
+                    promotionMessage += ` Oh no! A controversy erupted, reducing hype!`;
+                } else {
+                    hypeMultiplier = chosenOption.hypeEffectMin + Math.random() * (chosenOption.hypeEffectMax - chosenOption.hypeEffectMin);
+                    promotionMessage += ` It generated great hype!`;
+                }
+            }
+
+            // Proceed with movie simulation after promotion choice
+            await simulateNewMovie(hypeMultiplier, promotionMessage);
+        }
+
+
+        /**
+         * Formats a number into Bangladeshi Taka (BDT) currency string with comma separation.
+         * @param {number} amount The amount to format.
+         * @returns {string} The formatted currency string (e.g., "1,00,00,000 BDT").
+         */
+        function formatBDT(amount) {
+            if (typeof amount !== 'number') {
+                return 'N/A BDT';
+            }
+            // Convert to string and handle negative numbers if necessary
+            let numStr = Math.abs(amount).toFixed(0);
+            let result = '';
+            let len = numStr.length;
+
+            // Handle the last three digits (hundreds, tens, ones)
+            if (len > 3) {
+                result = numStr.substring(len - 3);
+                numStr = numStr.substring(0, len - 3);
+            } else {
+                return `${amount.toLocaleString('en-IN')} BDT`; // For numbers less than 1000
+            }
+
+            // Handle groups of two digits (lakhs, crores)
+            while (numStr.length > 0) {
+                if (numStr.length > 2) {
+                    result = numStr.substring(numStr.length - 2) + ',' + result;
+                    numStr = numStr.substring(0, numStr.length - 2);
+                } else {
+                    result = numStr + ',' + result;
+                    numStr = '';
+                }
+            }
+            return (amount < 0 ? '-' : '') + `${result} BDT`;
+        }
+
+        /**
+         * Returns a shorthand representation of the amount in BDT (e.g., "1 Cr", "10 Lakh").
+         * @param {number} amount The amount to convert.
+         * @returns {string} The shorthand string.
+         */
+        function getShortBDT(amount) {
+            if (typeof amount !== 'number') {
+                return 'N/A';
+            }
+            const absAmount = Math.abs(amount);
+            if (absAmount >= 10000000) { // 1 Crore = 10,000,000
+                return (amount / 10000000).toFixed(1).replace(/\.0$/, '') + ' Cr';
+            } else if (absAmount >= 100000) { // 1 Lakh = 100,000
+                return (amount / 100000).toFixed(1).replace(/\.0$/, '') + ' Lakh';
+            } else if (absAmount >= 1000) { // 1 Thousand = 1,000
+                return (amount / 1000).toFixed(1).replace(/\.0$/, '') + ' K';
+            } else {
+                return amount.toFixed(0);
+            }
+        }
+
+        /**
+         * Generates a unique movie title with Bangladeshi cinema flavor.
+         * @param {string} baseName The base name for a sequel, if applicable.
+         * @param {number} sequelNum The sequel number, if applicable.
+         * @returns {object} An object containing the title, baseName, and sequelNumber.
+         */
+        function generateMovieTitle(baseName = null, sequelNum = 0) {
+            let title;
+            let finalBaseName = baseName;
+            let finalSequelNum = sequelNum;
+
+            if (baseName && sequelNum > 0) {
+                // This is a sequel
+                title = `${baseName} Part ${sequelNum}`;
+            } else {
+                // Generate a new unique base name
+                do {
+                    const pattern = Math.floor(Math.random() * 4); // 0, 1, 2, or 3 for different patterns
+                    let chosenAdjective = bdAdjectives[Math.floor(Math.random() * bdAdjectives.length)];
+                    let chosenNoun = bdNouns[Math.floor(Math.random() * bdNouns.length)];
+                    let chosenSuffix = bdSuffixes[Math.floor(Math.random() * bdSuffixes.length)];
+                    let chosenPrefix = bdPrefixes[Math.floor(Math.random() * bdPrefixes.length)];
+
+                    switch (pattern) {
+                        case 0: // Adjective Noun (e.g., Ochena Poth)
+                            title = `${chosenAdjective} ${chosenNoun}`;
+                            break;
+                        case 1: // Noun er Adjective (e.g., Jiboner Golpo)
+                            title = `${chosenNoun}er ${chosenAdjective}`;
+                            break;
+                        case 2: // Prefix Noun (e.g., Amar Jibon)
+                            title = `${chosenPrefix} ${chosenNoun}`;
+                            break;
+                        case 3: // Noun Suffix (e.g., Shopner Dunia)
+                            title = `${chosenNoun} ${chosenSuffix}`;
+                            break;
+                        default: // Fallback
+                            title = `${chosenAdjective} ${chosenNoun}`;
+                    }
+                } while (generatedMovieNames.has(title)); // Ensure uniqueness of base name globally
+
+                generatedMovieNames.add(title);
+                finalBaseName = title;
+                finalSequelNum = 1; // First part of a new movie series
+            }
+            return { title, baseName: finalBaseName, sequelNumber: finalSequelNum };
+        }
+
+        /**
+         * Draws the spinning actor on the canvas.
+         */
+        function drawActor() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas
+
+            ctx.save(); // Save the current drawing state
+
+            // Translate to the center of the canvas
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+            // Rotate the canvas
+            ctx.rotate(rotationAngle);
+
+            // Draw the actor (simple rectangle for now)
+            ctx.fillStyle = '#6366f1'; // Indigo color for actor
+            ctx.fillRect(-actorWidth / 2, -actorHeight / 2, actorWidth, actorHeight);
+
+            // Draw a head
+            ctx.fillStyle = '#fde047'; // Yellow for head
+            ctx.beginPath();
+            ctx.arc(0, -actorHeight / 2 - 15, 15, 0, Math.PI * 2); // Circle for head
+            ctx.fill();
+
+            ctx.restore(); // Restore the drawing state
+        }
+
+        /**
+         * Animates the spinning actor.
+         */
+        function animateActor() {
+            rotationAngle += 0.05; // Increase rotation angle
+            drawActor(); // Redraw actor
+            animationFrameId = requestAnimationFrame(animateActor); // Request next frame
+        }
+
+        /**
+         * Updates the UI with the current actor data.
+         */
+        function updateUI() {
+            actorNameEl.textContent = actor.name;
+            actorNameInputEl.value = actor.name; // Keep input field updated
+            careerStageEl.textContent = careerStages[actor.careerStage];
+            starPowerDisplayEl.textContent = Math.round(actor.starPower); // Display star power
+            currentMoneyDisplayEl.textContent = formatBDT(actor.money); // Update money display
+            currentYearDisplayEl.textContent = currentYear.toFixed(0); // Display current year (rounded for display)
+            totalMoviesEl.textContent = actor.totalMovies;
+            totalAwardsEl.textContent = actor.totalAwards;
+            totalSequelsEl.textContent = actor.totalSequels;
+
+            dramaSkillDisplayEl.textContent = actor.dramaSkill;
+            comedySkillDisplayEl.textContent = actor.comedySkill;
+            actionSkillDisplayEl.textContent = actor.actionSkill;
+            charismaDisplayEl.textContent = actor.charisma;
+
+            lastMovieTitleEl.textContent = actor.lastMovie.title; // Display last movie title
+            lastMovieYearEl.textContent = actor.lastMovie.year; // Display last movie year
+            lastBudgetEl.textContent = `${formatBDT(actor.lastMovie.budget)} (${getShortBDT(actor.lastMovie.budget)})`;
+            lastOpeningCollectionEl.textContent = `${formatBDT(actor.lastMovie.openingCollection)} (${getShortBDT(actor.lastMovie.openingCollection)})`;
+            lastPreReleaseCollectionEl.textContent = `${formatBDT(actor.lastMovie.preReleaseCollection)} (${getShortBDT(actor.lastMovie.preReleaseCollection)})`;
+            lastBoxOfficeCollectionEl.textContent = `${formatBDT(actor.lastMovie.boxOfficeCollection)} (${getShortBDT(actor.lastMovie.boxOfficeCollection)})`;
+            lastAwardsEl.textContent = actor.lastMovie.awardWon; // Display specific award
+            lastSequelEl.textContent = actor.lastMovie.sequel ? "Yes" : "No";
+            lastVerdictEl.textContent = actor.lastMovie.verdict;
+            lastRatingEl.textContent = actor.lastMovie.rating !== "N/A" ? `${actor.lastMovie.rating}/10` : "N/A"; // Display rating
+            lastCriticReviewEl.textContent = actor.lastMovie.criticReview; // Display critic review
+            lastMovieGenreEl.textContent = actor.lastMovie.genre; // Display last movie genre
+
+            updateHighestGrossingList(); // Update highest grossing list
+            updateNewsFeed(); // Update news feed
+            updateActiveInvestmentsList(); // Update active investments list
+        }
+
+        /**
+         * Updates the list of highest grossing movies.
+         */
+        function updateHighestGrossingList() {
+            // Sort movie history by box office collection in descending order
+            const sortedMovies = [...actor.movieHistory].sort((a, b) => b.boxOfficeCollection - a.boxOfficeCollection);
+
+            highestGrossingListEl.innerHTML = ''; // Clear existing list
+
+            if (sortedMovies.length === 0) {
+                highestGrossingListEl.innerHTML = '<li class="text-gray-500 text-center">No movies yet.</li>';
+                return;
+            }
+
+            // Display top 5 movies
+            for (let i = 0; i < Math.min(sortedMovies.length, 5); i++) {
+                const movie = sortedMovies[i];
+                const listItem = document.createElement('li');
+                listItem.innerHTML = `
+                    <span class="movie-title">${movie.title} (${movie.year})</span>
+                    <span class="collection-amount">${getShortBDT(movie.boxOfficeCollection)} BDT</span>
+                `;
+                highestGrossingListEl.appendChild(listItem);
+            }
+        }
+
+        /**
+         * Generates a critic review using the Gemini API.
+         * @param {string} title The movie title.
+         * @param {string} genre The movie genre.
+         * @param {number} rating The movie rating (1-10).
+         * @param {string} verdict The movie verdict (Flop, Average, Hit, Blockbuster).
+         * @returns {Promise<string>} A promise that resolves to the generated review text or a fallback.
+         */
+        async function generateCriticReview(title, genre, rating, verdict) {
+            const prompt = `As a professional movie critic, write a concise and engaging review for a Bangladeshi movie.
+            Movie Title: ${title}
+            Genre: ${genre}
+            Rating: ${rating}/10
+            Verdict: ${verdict}
+            Focus on the acting, story, and overall impact, reflecting the verdict and rating. Keep it under 50 words.`;
+
+            let chatHistory = [];
+            chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+            const payload = { contents: chatHistory };
+            const apiKey = ""; // Canvas will automatically provide the API key
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    return result.candidates[0].content.parts[0].text;
+                } else {
+                    console.error("LLM response structure unexpected:", result);
+                    return getRandomCriticReview(rating); // Fallback
+                }
+            } catch (error) {
+                console.error("Error calling Gemini API for critic review:", error);
+                return getRandomCriticReview(rating); // Fallback
+            }
+        }
+
+        /**
+         * Gets a random critic review from static lists based on rating.
+         * Used as a fallback if LLM generation fails.
+         * @param {number} rating The movie rating.
+         * @returns {string} A random critic review.
+         */
+        function getRandomCriticReview(rating) {
+            if (rating < 4) {
+                return negativeReviews[Math.floor(Math.random() * negativeReviews.length)];
+            } else if (rating < 7) {
+                return neutralReviews[Math.floor(Math.random() * neutralReviews.length)];
+            } else {
+                return positiveReviews[Math.floor(Math.random() * positiveReviews.length)];
+            }
+        }
+
+        /**
+         * Generates a set of script offers for the actor.
+         * @returns {Array<object>} An array of script offer objects.
+         */
+        function generateScriptOffers() {
+            const offers = [];
+            const numOffers = 3; // Always generate 3 offers
+
+            for (let i = 0; i < numOffers; i++) {
+                const chosenGenre = genres[Math.floor(Math.random() * genres.length)];
+                const movieTitleData = generateMovieTitle();
+                const director = `Director ${String.fromCharCode(65 + Math.floor(Math.random() * 5))}`; // A-E
+                const coStar = `Co-star ${String.fromCharCode(70 + Math.floor(Math.random() * 5))}`; // F-J
+
+                // Base fee and budget depend on career stage and star power
+                let baseFeeMultiplier = 0.001 + (actor.careerStage * 0.0005) + (actor.starPower / 100 * 0.001); // 0.1% to 0.25% of budget
+                let baseBudget = 5000000 + (actor.careerStage * 10000000) + (actor.starPower * 500000); // Scales with stage and SP
+
+                const offerBudget = Math.round(baseBudget * (0.8 + Math.random() * 0.4)); // Vary budget
+                const offerFee = Math.round(offerBudget * baseFeeMultiplier * (0.8 + Math.random() * 0.4)); // Vary fee
+
+                offers.push({
+                    id: crypto.randomUUID(), // Unique ID for the offer
+                    title: movieTitleData.title,
+                    genre: chosenGenre,
+                    director: director,
+                    coStar: coStar,
+                    baseFee: offerFee,
+                    negotiatedFee: offerFee, // Starts at base fee
+                    budget: offerBudget,
+                    baseName: movieTitleData.baseName,
+                    sequelNumber: movieTitleData.sequelNumber,
+                    accepted: false,
+                    negotiationAttempts: 0
+                });
+            }
+            return offers;
+        }
+
+        /**
+         * Displays the script offers modal.
+         */
+        function showScriptOffersModal() {
+            const offers = generateScriptOffers();
+            scriptOffersList.innerHTML = ''; // Clear previous offers
+
+            if (offers.length === 0) {
+                scriptOffersList.innerHTML = '<p class="text-gray-600">No new script offers at this time. Consider taking a break.</p>';
+                noOffersBtn.textContent = "Take a Break (No Movie This Year)";
+                noOffersBtn.onclick = () => { hideModal(scriptOffersModal, scriptOffersOverlay); workHard(); }; // Redirect to work hard
+                showModal(scriptOffersModal, scriptOffersOverlay);
+                return;
+            }
+
+            offers.forEach(offer => {
+                const offerCard = document.createElement('div');
+                offerCard.classList.add('script-offer-card');
+                offerCard.innerHTML = `
+                    <strong>${offer.title} (${offer.genre})</strong>
+                    <span>Director: ${offer.director}</span>
+                    <span>Co-star: ${offer.coStar}</span>
+                    <span>Budget: ${formatBDT(offer.budget)}</span>
+                    <span>Your Fee: <span id="offerFee-${offer.id}">${formatBDT(offer.baseFee)}</span></span>
+                    <div class="script-offer-actions">
+                        <button class="accept-btn" data-offer-id="${offer.id}">Accept</button>
+                        <button class="negotiate-btn" data-offer-id="${offer.id}">Negotiate</button>
+                        <button class="reject-btn" data-offer-id="${offer.id}">Reject</button>
+                    </div>
+                `;
+                scriptOffersList.appendChild(offerCard);
+
+                // Add event listeners for buttons within the offer card
+                offerCard.querySelector('.accept-btn').addEventListener('click', () => handleScriptOfferChoice(offer, 'accept'));
+                offerCard.querySelector('.negotiate-btn').addEventListener('click', () => handleScriptOfferChoice(offer, 'negotiate'));
+                offerCard.querySelector('.reject-btn').addEventListener('click', () => handleScriptOfferChoice(offer, 'reject'));
+            });
+            showModal(scriptOffersModal, scriptOffersOverlay);
+        }
+
+        /**
+         * Handles the player's choice for a script offer.
+         * @param {object} offer The script offer object.
+         * @param {string} choice 'accept', 'negotiate', or 'reject'.
+         */
+        async function handleScriptOfferChoice(offer, choice) {
+            if (choice === 'accept') {
+                hideModal(scriptOffersModal, scriptOffersOverlay);
+                await simulateNewMovie(1.0, "No promotion was done for this movie.", offer); // Pass the chosen offer
+                unlockAchievement("firstMovie", "You've starred in your first movie!");
+            } else if (choice === 'negotiate') {
+                offer.negotiationAttempts++;
+                const negotiationSuccessChance = 0.6 - (offer.negotiationAttempts * 0.1) + (actor.charisma / 10); // Charisma helps
+                if (Math.random() < negotiationSuccessChance) {
+                    const feeIncrease = Math.round(offer.baseFee * (0.1 + Math.random() * 0.2)); // 10-20% increase
+                    offer.negotiatedFee = offer.baseFee + feeIncrease;
+                    document.getElementById(`offerFee-${offer.id}`).textContent = formatBDT(offer.negotiatedFee);
+                    showMessageBox(`Negotiation successful! Your fee for "${offer.title}" increased to ${formatBDT(offer.negotiatedFee)}.`);
+                    // Disable further negotiation for this offer
+                    const offerCard = document.querySelector(`.script-offer-card [data-offer-id="${offer.id}"]`).closest('.script-offer-card');
+                    offerCard.querySelector('.negotiate-btn').disabled = true;
+                } else {
+                    showMessageBox(`Negotiation failed for "${offer.title}". The fee remains ${formatBDT(offer.baseFee)}. You can try again or accept/reject.`);
+                    // Optionally, reduce fee slightly on failure or make it harder next time
+                }
+            } else if (choice === 'reject') {
+                // Remove the rejected offer from the UI
+                const offerCard = document.querySelector(`.script-offer-card [data-offer-id="${offer.id}"]`).closest('.script-offer-card');
+                if (offerCard) {
+                    offerCard.remove();
+                }
+                // If no more offers, close modal and trigger "take a break"
+                if (scriptOffersList.children.length === 0) {
+                    hideModal(scriptOffersModal, scriptOffersOverlay);
+                    workHard(); // Actor takes a break
+                    showMessageBox("No suitable script offers found. You decided to take a break this year.");
+                } else {
+                    showMessageBox(`You rejected "${offer.title}". Looking for other opportunities.`);
+                }
+            }
+        }
+
+        /**
+         * Simulates a new movie for the active actor.
+         * @param {number} chosenHypeMultiplier The multiplier from promotion (defaults to 1.0).
+         * @param {string} promotionMessage A message describing the promotion outcome.
+         * @param {object} chosenScript The chosen script offer object.
+         */
+        async function simulateNewMovie(chosenHypeMultiplier = 1.0, promotionMessage = "No promotion was done for this movie.", chosenScript) {
+            showLoading(); // Show loading indicator while LLM generates review
+
+            actor.totalMovies++;
+
+            const movieTitle = chosenScript.title;
+            const movieBaseName = chosenScript.baseName;
+            const movieSequelNumber = chosenScript.sequelNumber;
+            const chosenGenre = chosenScript.genre;
+            const budget = chosenScript.budget;
+            const actorFee = chosenScript.negotiatedFee; // Use negotiated fee
+
+            // Check for achievement
+            if (movieSequelNumber > 1) {
+                unlockAchievement("firstSequel", "You've starred in your first sequel!");
+            }
+            if (actor.totalMovies >= 10) unlockAchievement("tenMovies", "You've starred in 10 movies!");
+            if (actor.totalMovies >= 20) unlockAchievement("twentyMovies", "You've starred in 20 movies!");
+
+
+            // Apply Star Power influence to budget (already done in script offer generation, but keep for consistency if logic changes)
+            const starPowerInfluence = actor.starPower / 100;
+
+            // Collections based on budget and randomness, heavily influenced by Star Power, Genre Affinity, and new Skills
+            const genreAffinityMultiplier = actor.genreAffinities[chosenGenre] || 1;
+
+            // Skill bonus based on genre
+            let skillBonus = 0;
+            switch (chosenGenre) {
+                case "Drama": skillBonus = actor.dramaSkill; break;
+                case "Comedy": skillBonus = actor.comedySkill; break;
+                case "Action": skillBonus = actor.actionSkill; break;
+                case "Romance": skillBonus = actor.charisma; break; // Charisma for Romance
+                case "Thriller": skillBonus = (actor.dramaSkill + actor.actionSkill) / 2; break; // Mix for Thriller
+            }
+            skillBonus = skillBonus / 5; // Normalize skill to a 0.2-1.0 multiplier (max skill 5 gives 1.0 bonus)
+
+            // Genre Popularity influence
+            const popularityMultiplier = genrePopularity[chosenGenre] || 1.0;
+
+            // Generate Rating first to determine good/bad movie for promotion effect
+            let baseRating = 4 + actor.careerStage;
+            let randomRatingAdjustment = (Math.random() * 3) - 1.5;
+            let starPowerRatingBonus = (actor.starPower / 25);
+            let genreRatingBonus = (genreAffinityMultiplier - 1) * 2;
+            let finalRating = Math.max(1, Math.min(10, baseRating + randomRatingAdjustment + starPowerRatingBonus + genreRatingBonus + skillBonus));
+            finalRating = parseFloat(finalRating.toFixed(1));
+
+            let initialVerdict = "";
+            let initialBoxOfficeMultiplier = 0.7 + Math.random() * 1.2 + (actor.careerStage * 0.08) + (starPowerInfluence * 0.4) * genreAffinityMultiplier * popularityMultiplier;
+            let initialBoxOfficeCollection = Math.round(budget * initialBoxOfficeMultiplier);
+
+            if (initialBoxOfficeCollection < budget * 0.9) {
+                initialVerdict = "Flop";
+            } else if (initialBoxOfficeCollection < budget * 1.2) {
+                initialVerdict = "Average";
+            } else if (initialBoxOfficeCollection < budget * 2.0) {
+                initialVerdict = "Hit";
+            } else {
+                initialVerdict = "Blockbuster";
+            }
+
+            let finalHypeMultiplier = chosenHypeMultiplier;
+            let promotionOutcomeMessage = promotionMessage;
+
+            // Apply promotion effect based on movie quality
+            if (finalRating >= 7 && (initialVerdict === "Hit" || initialVerdict === "Blockbuster")) {
+                promotionOutcomeMessage += ` The promotion successfully amplified the hype for this great movie!`;
+            } else {
+                if (chosenHypeMultiplier > 1.0) {
+                    finalHypeMultiplier = 1.0 / chosenHypeMultiplier;
+                    promotionOutcomeMessage += ` The promotion backfired due to the movie's quality!`;
+                }
+            }
+
+            const openingCollection = Math.round(budget * (0.08 + Math.random() * 0.12) * (1 + starPowerInfluence * 0.3) * genreAffinityMultiplier * finalHypeMultiplier * popularityMultiplier);
+            const preReleaseCollection = Math.round(budget * (0.04 + Math.random() * 0.08) * (1 + starPowerInfluence * 0.15) * genreAffinityMultiplier * popularityMultiplier);
+
+            // Determine final Box Office Collection and Verdict
+            let boxOfficeCollection;
+            let verdict = "";
+            let starPowerChange = 0;
+
+            let baseBoxOfficeMultiplier = 0.7 + Math.random() * 1.2;
+            baseBoxOfficeMultiplier += actor.careerStage * 0.08;
+            baseBoxOfficeMultiplier *= genreAffinityMultiplier;
+            baseBoxOfficeMultiplier *= popularityMultiplier; // Genre popularity affects overall BO
+
+            if (finalRating >= 7 && (initialVerdict === "Hit" || initialVerdict === "Blockbuster")) {
+                // Good movie: Star Power boosts overall box office significantly
+                boxOfficeCollection = Math.round(budget * baseBoxOfficeMultiplier * (1 + starPowerInfluence * 0.6)); // Increased SP impact
+            } else {
+                // Bad/Average movie: Star Power helps opening, but box office drops after opening day
+                // The total box office will be a fraction of the opening collection, reflecting bad word-of-mouth
+                boxOfficeCollection = Math.round(openingCollection * (0.5 + Math.random() * 0.5)); // Can drop to 50%-100% of opening
+                boxOfficeCollection = Math.min(boxOfficeCollection, budget * 1.1); // Cap bad movie BO at 110% of budget
+            }
+
+            boxOfficeCollection = Math.max(openingCollection, boxOfficeCollection); // Ensure BO is at least opening
+
+            // Re-evaluate verdict based on final boxOfficeCollection
+            if (boxOfficeCollection < budget * 0.9) {
+                verdict = "Flop";
+            } else if (boxOfficeCollection < budget * 1.2) {
+                verdict = "Average";
+            } else if (boxOfficeCollection < budget * 2.0) {
+                verdict = "Hit";
+                unlockAchievement("firstHit", `Your movie "${movieTitle}" is a Hit!`);
+            } else {
+                verdict = "Blockbuster";
+                unlockAchievement("firstBlockbuster", `Your movie "${movieTitle}" is a Blockbuster!`);
+            }
+
+            // Star power change based on final verdict
+            if (verdict === "Flop") {
+                starPowerChange = -(5 + Math.random() * 5);
+            } else if (verdict === "Average") {
+                starPowerChange = -(1 + Math.random() * 2);
+            } else if (verdict === "Hit") {
+                starPowerChange = (3 + Math.random() * 4);
+            } else if (verdict === "Blockbuster") {
+                starPowerChange = (7 + Math.random() * 8);
+            }
+
+            // Generate Critic Review using LLM
+            let criticReviewText = await generateCriticReview(movieTitle, chosenGenre, finalRating, verdict);
+
+            // Awards and Sequel based on box office success and enhanced by Star Power
+            let awards = false;
+            let sequel = false;
+            let awardWon = "No"; // Default value
+
+            const awardsThreshold = budget * (1.7 + actor.careerStage * 0.15); // Higher threshold for awards
+            const sequelThreshold = budget * (1.5 + actor.careerStage * 0.1); // Higher threshold for sequels
+
+            // Award logic
+            if (boxOfficeCollection > awardsThreshold && Math.random() < (0.3 + starPowerInfluence * 0.2)) { // Lower base chance
+                awards = true;
+                actor.totalAwards++;
+                starPowerChange += (2 + Math.random() * 2); // Small boost for awards
+                awardWon = bangladeshiAwards[Math.floor(Math.random() * bangladeshiAwards.length)]; // Pick a random award
+                unlockAchievement("firstAward", `You won a ${awardWon} for "${movieTitle}"!`);
+                if (actor.totalAwards >= 5) unlockAchievement("fiveAwards", "You've won 5 awards!");
+            }
+            // Check if a sequel is possible (successful enough AND within max parts)
+            if (boxOfficeCollection > sequelThreshold && movieSequelNumber < (sequelTracker[movieBaseName]?.maxParts || 1)) {
+                 if (Math.random() < (0.4 + starPowerInfluence * 0.2)) {
+                    sequel = true;
+                 }
+            }
+
+
+            // Apply star power change
+            actor.starPower = Math.max(0, Math.min(100, actor.starPower + starPowerChange));
+
+            // Adjust star power based on critic rating
+            if (finalRating >= 7.5) { // Higher threshold for good review boost
+                actor.starPower = Math.min(100, actor.starPower + (1 + Math.random() * 2));
+            } else if (finalRating < 4.5) { // Lower threshold for bad review hit
+                actor.starPower = Math.max(0, actor.starPower - (1 + Math.random() * 2));
+            }
+
+            actor.money += actorFee; // Add fees to actor's money
+
+            const movieDetails = {
+                title: movieTitle,
+                year: currentYear.toFixed(0), // Store as rounded year
+                budget,
+                openingCollection,
+                preReleaseCollection,
+                boxOfficeCollection,
+                awards,
+                sequel,
+                verdict,
+                rating: finalRating, // Store rating
+                criticReview: criticReviewText, // Store critic review
+                genre: chosenGenre, // Store genre
+                baseName: movieBaseName,
+                sequelNumber: movieSequelNumber,
+                awardWon: awardWon // Store the specific award won
+            };
+
+            actor.lastMovie = movieDetails;
+            actor.movieHistory.push(movieDetails);
+
+            hideLoading(); // Hide loading indicator
+            updateUI();
+            showMessageBox(`A new movie, "${movieTitle}" (${chosenGenre}), has been released in ${currentYear.toFixed(0)}!
+            ${promotionOutcomeMessage}
+            Actor Fee: ${formatBDT(actorFee)}
+
+            Rating: ${finalRating}/10
+            Critic Review: "${criticReviewText}"
+
+            Budget: ${formatBDT(budget)} (${getShortBDT(budget)})
+            Box Office: ${formatBDT(boxOfficeCollection)} (${getShortBDT(boxOfficeCollection)})
+            Verdict: ${verdict}
+            Awards: ${awards ? awardWon : "No."}
+            Sequel: ${sequel ? "Yes!" : "No."}`);
+        }
+
+        /**
+         * Simulates the passage of one year, potentially advancing career stage and star power.
+         */
+        function simulateNextYear() {
+            currentYear++; // Increment the current year globally
+
+            // Apply small organic star power growth to the actor
+            actor.starPower = Math.min(100, actor.starPower + (0.5 + Math.random() * 1.5));
+
+            let careerAdvanceMessage = "";
+            const oldCareerStage = actor.careerStage;
+            if (actor.careerStage < careerStages.length - 1) {
+                // Adjust conditions for career advancement (harder) for the active player
+                const moviesForNextStage = (actor.careerStage + 1) * 4; // Increased requirement
+                const starPowerForNextStage = (actor.careerStage + 1) * 15; // Increased requirement
+
+                if (actor.totalMovies >= moviesForNextStage && actor.starPower >= starPowerForNextStage && Math.random() > 0.5) {
+                    actor.careerStage++;
+                    actor.starPower = Math.min(100, actor.starPower + (5 + Math.random() * 5)); // Boost on advancement
+                    careerAdvanceMessage = `Congratulations! ${actor.name} has advanced to a ${careerStages[actor.careerStage]}!`;
+                } else {
+                    careerAdvanceMessage = `${actor.name} continues to hone their craft. No career advancement this year.`;
+                }
+            } else {
+                careerAdvanceMessage = `${actor.name} is already a ${careerStages[actor.careerStage]}! They are at the peak of their career.`;
+            }
+
+            // Check career stage achievements
+            if (actor.careerStage >= 1 && oldCareerStage < 1) unlockAchievement("reachedRisingStar", "You are now a Rising Star!");
+            if (actor.careerStage >= 2 && oldCareerStage < 2) unlockAchievement("reachedEstablished", "You are now an Established Actor!");
+            if (actor.careerStage >= 3 && oldCareerStage < 3) unlockAchievement("reachedSuperstar", "You are now a Superstar!");
+            if (actor.careerStage >= 4 && oldCareerStage < 4) unlockAchievement("reachedLegend", "You are now a Legend!");
+
+            // Check money achievements
+            if (actor.money >= 10000000 && !actor.playerAchievements.find(a => a.id === "earned1Cr")?.unlocked) unlockAchievement("earned1Cr", "You've earned 1 Crore BDT!");
+            if (actor.money >= 100000000 && !actor.playerAchievements.find(a => a.id === "earned10Cr")?.unlocked) unlockAchievement("earned10Cr", "You've earned 10 Crore BDT!");
+            if (actor.money >= 1000000000 && !actor.playerAchievements.find(a => a.id === "earned100Cr")?.unlocked) unlockAchievement("earned100Cr", "You've earned 100 Crore BDT!");
+
+
+            // Update genre popularity
+            updateGenrePopularity();
+
+            // Resolve active investments
+            resolveInvestments();
+
+            // Check for new endorsement offers
+            checkForEndorsementOffers();
+
+            // Check for random events
+            checkRandomEvent();
+
+            updateUI();
+            showMessageBox(`One year has passed. The current year is now ${currentYear.toFixed(0)}. ${careerAdvanceMessage}`);
+        }
+
+        /**
+         * Updates the popularity of genres.
+         */
+        function updateGenrePopularity() {
+            genres.forEach(genre => {
+                // Randomly adjust popularity up or down slightly
+                genrePopularity[genre] = Math.max(0.5, Math.min(1.5, genrePopularity[genre] + (Math.random() - 0.5) * 0.2));
+                addNewsItem(`Industry Trend: ${genre} movies are now ${genrePopularity[genre] > 1.1 ? 'hot' : (genrePopularity[genre] < 0.9 ? 'cold' : 'stable')}.`);
+            });
+        }
+
+        /**
+         * Simulates the actor working hard to gain star power or improve a specific skill.
+         * @param {string} skillType The type of skill to improve ('drama', 'comedy', 'action', 'charisma', or 'general').
+         */
+        function workHard(skillType = 'general') {
+            let message = "";
+            let skillGain = 0;
+            const starPowerGain = 2; // Fixed gain of 2 star power for any work hard action
+
+            actor.starPower = Math.min(100, actor.starPower + starPowerGain);
+
+            if (skillType === 'general') {
+                const randomSkill = genres[Math.floor(Math.random() * genres.length)];
+                actor[`${randomSkill.toLowerCase()}Skill`] = Math.min(10, actor[`${randomSkill.toLowerCase()}Skill`] + 1);
+                message = `${actor.name} worked hard on their ${randomSkill} skill and gained 1 point!`;
+            } else {
+                actor[`${skillType}Skill`] = Math.min(10, actor[`${skillType}Skill`] + 1);
+                message = `${actor.name} worked hard on their ${skillType} skill and gained 1 point!`;
+            }
+
+            currentYear += 0.25; // Advance global year by 0.25
+            updateUI();
+            showMessageBox(`${message} Also gained ${starPowerGain} Star Power! Current year: ${currentYear.toFixed(2)}`);
+        }
+
+        /**
+         * Shows the Work Hard options modal.
+         */
+        function showWorkHardModal() {
+            showModal(workHardModal, workHardOverlay);
+        }
+
+        // Event listeners for Work Hard skill buttons
+        workHardOptionBtns.forEach(button => {
+            button.addEventListener('click', (event) => {
+                const skillType = event.currentTarget.dataset.skill;
+                hideModal(workHardModal, workHardOverlay);
+                workHard(skillType);
+            });
+        });
+        closeWorkHardModalBtn.addEventListener('click', () => hideModal(workHardModal, workHardOverlay));
+
+
+        /**
+         * Checks for random events and triggers them.
+         */
+        function checkRandomEvent() {
+            const eventChance = Math.random();
+
+            if (eventChance < 0.05) { // 5% chance for a major event
+                const majorEvents = ["injury", "prCrisis", "breakthroughRole"];
+                const chosenEvent = majorEvents[Math.floor(Math.random() * majorEvents.length)];
+
+                switch (chosenEvent) {
+                    case "injury":
+                        const injuryDuration = Math.floor(Math.random() * 2) + 1; // 1-2 years
+                        actor.starPower = Math.max(0, actor.starPower - (10 + Math.random() * 10)); // 10-20 SP loss
+                        addNewsItem(`${actor.name} suffered an injury! Star Power decreased. Recovery expected in ${injuryDuration} year(s).`);
+                        showMessageBox(`${actor.name} suffered a minor injury and will be out of action for ${injuryDuration} year(s)! Star Power decreased.`);
+                        // Could add a temporary debuff to skills/movies for 'injuryDuration' years
+                        break;
+                    case "prCrisis":
+                        const fine = Math.round(actor.money * (0.05 + Math.random() * 0.1)); // 5-15% of money
+                        actor.money = Math.max(0, actor.money - fine);
+                        actor.starPower = Math.max(0, actor.starPower - (15 + Math.random() * 15)); // 15-30 SP loss
+                        addNewsItem(`${actor.name} embroiled in PR Crisis! Money fined, Star Power dropped.`);
+                        showMessageBox(`${actor.name} is facing a public relations crisis! You were fined ${formatBDT(fine)} and lost Star Power.`);
+                        break;
+                    case "breakthroughRole":
+                        actor.starPower = Math.min(100, actor.starPower + (15 + Math.random() * 15)); // 15-30 SP gain
+                        actor.dramaSkill = Math.min(10, actor.dramaSkill + 1);
+                        actor.comedySkill = Math.min(10, actor.comedySkill + 1);
+                        actor.actionSkill = Math.min(10, actor.actionSkill + 1);
+                        actor.charisma = Math.min(10, actor.charisma + 1);
+                        addNewsItem(`${actor.name} lands a breakthrough role! Star Power and skills increased dramatically.`);
+                        showMessageBox(`${actor.name} landed a career-defining role! Significant Star Power and skill boosts!`);
+                        break;
+                }
+            } else if (eventChance < 0.15) { // 10% chance for minor event
+                const minorEvents = ["cameoOffer", "newTalent"];
+                const chosenEvent = minorEvents[Math.floor(Math.random() * minorEvents.length)];
+
+                switch (chosenEvent) {
+                    case "cameoOffer":
+                        const cameoMoney = Math.round(actor.money * (0.01 + Math.random() * 0.03)); // 1-3% of money
+                        actor.money += cameoMoney;
+                        actor.starPower = Math.min(100, actor.starPower + (1 + Math.random() * 2)); // 1-2 SP gain
+                        addNewsItem(`${actor.name} took a lucrative cameo role. Money and Star Power increased.`);
+                        showMessageBox(`${actor.name} did a quick cameo and earned ${formatBDT(cameoMoney)}!`);
+                        break;
+                    case "newTalent":
+                        const talentType = Math.random() < 0.5 ? "Director" : "Co-star";
+                        const talentName = `New ${talentType} ${String.fromCharCode(65 + Math.floor(Math.random() * 26))}`;
+                        addNewsItem(`Industry Alert: A promising new ${talentType}, ${talentName}, is making waves!`);
+                        break;
+                }
+            }
+        }
+
+        /**
+         * Checks for new endorsement offers based on star power and charisma.
+         */
+        function checkForEndorsementOffers() {
+            if (actor.starPower > 30 && Math.random() < (0.1 + actor.charisma * 0.02)) { // Chance increases with SP and Charisma
+                const offerValue = Math.round(actor.starPower * 100000 * (1 + Math.random())); // Scales with SP
+                const duration = Math.floor(Math.random() * 3) + 1; // 1-3 years
+                const brand = ["Lux", "Grameenphone", "Square", "Walton", "Pran"].sort(() => 0.5 - Math.random())[0];
+
+                const offerMessage = `You received a brand endorsement offer from ${brand} for ${formatBDT(offerValue)} per year for ${duration} years! Accept?`;
+                showMessageBox(offerMessage); // Use message box for decision
+
+                // Create a temporary "decision" state or use a confirm-like modal
+                // For simplicity, let's auto-accept for now or add a simple confirm
+                if (confirm(`Accept endorsement from ${brand} for ${formatBDT(offerValue)}/year for ${duration} years?`)) {
+                    actor.activeEndorsements.push({ brand, annualIncome: offerValue, yearsRemaining: duration });
+                    addNewsItem(`${actor.name} signed an endorsement deal with ${brand}!`);
+                    showMessageBox(`Endorsement deal with ${brand} signed! You'll earn ${formatBDT(offerValue)} annually.`);
+                } else {
+                    showMessageBox(`You declined the endorsement offer from ${brand}.`);
+                }
+            }
+        }
+
+        /**
+         * Resolves active investments and adds returns/losses.
+         */
+        function resolveInvestments() {
+            const resolvedInvestments = [];
+            actor.activeInvestments.forEach(investment => {
+                investment.yearsRemaining--;
+                if (investment.yearsRemaining <= 0) {
+                    let finalAmount = investment.initialAmount * (investment.minReturn + Math.random() * (investment.maxReturn - investment.minReturn));
+                    finalAmount = Math.round(finalAmount);
+                    actor.money += finalAmount;
+                    addNewsItem(`Investment in ${investment.name} resolved! You gained/lost ${formatBDT(finalAmount - investment.initialAmount)}.`);
+                    showMessageBox(`Your ${investment.name} resolved! You invested ${formatBDT(investment.initialAmount)} and got back ${formatBDT(finalAmount)}. Net: ${formatBDT(finalAmount - investment.initialAmount)}.`);
+                } else {
+                    resolvedInvestments.push(investment);
+                }
+            });
+            actor.activeInvestments = resolvedInvestments;
+            updateActiveInvestmentsList();
+        }
+
+        /**
+         * Displays the investments modal.
+         */
+        function showInvestmentsModal() {
+            investmentsCurrentMoneyEl.textContent = formatBDT(actor.money);
+            investmentOptionsContainer.innerHTML = '';
+
+            investmentTypes.forEach(type => {
+                const cost = Math.round(actor.money * type.costMultiplier);
+                const button = document.createElement('button');
+                button.classList.add('investment-option-card');
+                button.innerHTML = `
+                    <strong>${type.name}</strong>
+                    <span>Cost: ${formatBDT(cost)}</span>
+                    <span>Risk: ${type.risk}</span>
+                    <span>Duration: ${type.durationYears} year(s)</span>
+                    <span>Expected Return: ${((type.minReturn - 1) * 100).toFixed(0)}% to ${((type.maxReturn - 1) * 100).toFixed(0)}%</span>
+                    <span>${type.description}</span>
+                `;
+                button.addEventListener('click', () => handleInvestmentChoice(type, cost));
+                investmentOptionsContainer.appendChild(button);
+            });
+
+            showModal(investmentsModal, investmentsOverlay);
+        }
+
+        /**
+         * Handles the player's investment choice.
+         * @param {object} investmentType The chosen investment type.
+         * @param {number} cost The calculated cost for this investment.
+         */
+        function handleInvestmentChoice(investmentType, cost) {
+            if (actor.money < cost) {
+                showMessageBox(`Not enough money for ${investmentType.name}! You need ${formatBDT(cost)}, but you only have ${formatBDT(actor.money)}.`);
+                return;
+            }
+
+            actor.money -= cost;
+            actor.activeInvestments.push({
+                name: investmentType.name,
+                initialAmount: cost,
+                yearsRemaining: investmentType.durationYears,
+                minReturn: investmentType.minReturn,
+                maxReturn: investmentType.maxReturn
+            });
+            addNewsItem(`${actor.name} invested in ${investmentType.name}.`);
+            showMessageBox(`You invested ${formatBDT(cost)} in ${investmentType.name}. It will resolve in ${investmentType.durationYears} year(s).`);
+            updateActiveInvestmentsList();
+            investmentsCurrentMoneyEl.textContent = formatBDT(actor.money); // Update money in modal
+        }
+
+        /**
+         * Updates the list of active investments in the modal.
+         */
+        function updateActiveInvestmentsList() {
+            activeInvestmentsList.innerHTML = '';
+            if (actor.activeInvestments.length === 0) {
+                activeInvestmentsList.innerHTML = '<li class="text-gray-500">No active investments.</li>';
+            } else {
+                actor.activeInvestments.forEach(inv => {
+                    const li = document.createElement('li');
+                    li.textContent = `${inv.name}: ${formatBDT(inv.initialAmount)} (Years left: ${inv.yearsRemaining})`;
+                    activeInvestmentsList.appendChild(li);
+                });
+            }
+        }
+
+        /**
+         * Displays the achievements modal.
+         */
+        function showAchievementsModal() {
+            achievementsListEl.innerHTML = '';
+            allAchievements.forEach(ach => {
+                const playerAch = actor.playerAchievements.find(a => a.id === ach.id);
+                const li = document.createElement('li');
+                li.classList.add(playerAch?.unlocked ? 'unlocked' : 'locked');
+                li.innerHTML = `
+                    <span>${ach.name}</span>
+                    <span class="status">${playerAch?.unlocked ? 'Unlocked' : 'Locked'}</span>
+                    <br>
+                    <span class="text-xs text-gray-600">${ach.description}</span>
+                `;
+                achievementsListEl.appendChild(li);
+            });
+            showModal(achievementsModal, achievementsOverlay);
+        }
+
+
+        /**
+         * Resets the simulation to its initial state.
+         * Optionally deletes the save from Firestore.
+         * @param {boolean} deleteFirestoreSave - True to delete the Firestore document.
+         */
+        async function resetSimulation(deleteFirestoreSave = false) {
+            actor = {
+                name: "New Actor",
+                careerStage: 0,
+                starPower: 10,
+                money: 50000, // Reset money to 50k
+                totalMovies: 0,
+                totalAwards: 0,
+                totalSequels: 0,
+                movieHistory: [],
+                lastMovie: {
+                    title: "N/A",
+                    year: "N/A",
+                    budget: 0,
+                    openingCollection: 0,
+                    preReleaseCollection: 0,
+                    boxOfficeCollection: 0,
+                    awards: false,
+                    sequel: false,
+                    verdict: "N/A",
+                    rating: "N/A",
+                    criticReview: "N/A",
+                    genre: "N/A",
+                    baseName: "",
+                    sequelNumber: 0,
+                    awardWon: "No"
+                },
+                genreAffinities: {},
+                dramaSkill: 1,
+                comedySkill: 1,
+                actionSkill: 1,
+                charisma: 1,
+                activeEndorsements: [],
+                activeInvestments: [],
+                playerAchievements: []
+            };
+            currentYear = 2025; // Reset year
+            generatedMovieNames.clear(); // Clear unique names
+            sequelTracker = {}; // Clear sequel tracker
+            industryNews = []; // Clear news feed
+            initializeActorAttributes(); // Re-initialize all actor attributes and achievements
+            addNewsItem("Welcome to the Bangladeshi Film Industry!"); // Add initial news
+
+            updateUI();
+            if (deleteFirestoreSave && userId && db) { // Ensure db is initialized before attempting delete
+                showLoading();
+                try {
+                    const docRef = doc(db, `artifacts/${appId}/users/${userId}/actorSimulator/mainSave`);
+                    await deleteDoc(docRef);
+                    showMessageBox("Simulation has been reset and saved game deleted.");
+                } catch (e) {
+                    console.error("Error deleting document: ", e);
+                    showMessageBox("Simulation reset, but failed to delete saved game from cloud. Check console.");
+                } finally {
+                    hideLoading();
+                }
+            } else if (deleteFirestoreSave && !db) {
+                showMessageBox("Simulation reset, but Firebase is not initialized. Cannot delete cloud save.");
+            } else {
+                showMessageBox("Simulation has been reset. A new actor is ready to begin their journey!");
+            }
+        }
+
+        /**
+         * Saves the current game state to Firestore.
+         */
+        async function saveGame() {
+            console.log("Attempting to save game...");
+            console.log("Current userId:", userId);
+            console.log("Is db initialized:", !!db);
+
+            if (!userId || !db) {
+                showMessageBox("Firebase not ready. Cannot save game. Please ensure authentication is complete and Firestore is initialized.");
+                console.error("Save game failed: userId or db not available.");
+                return;
+            }
+            showLoading();
+            try {
+                // Prepare data for saving (convert Set to Array)
+                const dataToSave = {
+                    actor: actor, // Save the single actor object
+                    currentYear: currentYear,
+                    generatedMovieNames: Array.from(generatedMovieNames),
+                    sequelTracker: sequelTracker,
+                    industryNews: industryNews // Save news feed
+                };
+
+                const docRef = doc(db, `artifacts/${appId}/users/${userId}/actorSimulator/mainSave`);
+                console.log("Attempting to save to document path:", `artifacts/${appId}/users/${userId}/actorSimulator/mainSave`);
+
+                await setDoc(docRef, dataToSave);
+                showMessageBox("Game saved successfully!");
+                console.log("Game saved successfully!");
+            } catch (e) {
+                console.error("Error saving document: ", e);
+                showMessageBox(`Failed to save game: ${e.message}. Please check your Firestore security rules and browser console for more details.`);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        /**
+         * Loads the game state from Firestore.
+         */
+        async function loadGame() {
+            console.log("Attempting to load game...");
+            console.log("Current userId:", userId);
+            console.log("Is db initialized:", !!db);
+
+            if (!userId || !db) {
+                showMessageBox("Firebase not ready. Cannot load game. Please ensure authentication is complete and Firestore is initialized.");
+                console.error("Load game failed: userId or db not available.");
+                return;
+            }
+            showLoading();
+            try {
+                const docRef = doc(db, `artifacts/${appId}/users/${userId}/actorSimulator/mainSave`);
+                console.log("Attempting to load from document path:", `artifacts/${appId}/users/${userId}/actorSimulator/mainSave`);
+
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    const loadedData = docSnap.data();
+                    actor = loadedData.actor; // Load the single actor object
+                    currentYear = loadedData.currentYear || 2025;
+                    generatedMovieNames = new Set(loadedData.generatedMovieNames || []);
+                    sequelTracker = loadedData.sequelTracker || {};
+                    industryNews = loadedData.industryNews || [];
+
+                    // Ensure all new properties exist for old saves
+                    if (typeof actor.money === 'undefined') actor.money = 50000;
+                    if (typeof actor.lastMovie.awardWon === 'undefined') actor.lastMovie.awardWon = actor.lastMovie.awards ? "Yes" : "No";
+                    if (!actor.genreAffinities || Object.keys(actor.genreAffinities).length === 0) {
+                        genres.forEach(genre => { actor.genreAffinities[genre] = 0.5 + Math.random(); });
+                    }
+                    if (typeof actor.dramaSkill === 'undefined') actor.dramaSkill = 1 + Math.floor(Math.random() * 5);
+                    if (typeof actor.comedySkill === 'undefined') actor.comedySkill = 1 + Math.floor(Math.random() * 5);
+                    if (typeof actor.actionSkill === 'undefined') actor.actionSkill = 1 + Math.floor(Math.random() * 5);
+                    if (typeof actor.charisma === 'undefined') actor.charisma = 1 + Math.floor(Math.random() * 5);
+                    if (!actor.activeEndorsements) actor.activeEndorsements = [];
+                    if (!actor.activeInvestments) actor.activeInvestments = [];
+                    if (!actor.playerAchievements || actor.playerAchievements.length === 0) {
+                        actor.playerAchievements = allAchievements.map(ach => ({ ...ach, unlocked: false }));
+                    } else {
+                        // Merge loaded achievements with allAchievements to ensure new ones are added as locked
+                        const loadedAchievementIds = new Set(actor.playerAchievements.map(a => a.id));
+                        allAchievements.forEach(newAch => {
+                            if (!loadedAchievementIds.has(newAch.id)) {
+                                actor.playerAchievements.push({ ...newAch, unlocked: false });
+                            }
+                        });
+                    }
+
+
+                    updateUI();
+                    showGameScreen();
+                    showMessageBox("Game loaded successfully!");
+                    console.log("Game loaded successfully!");
+                } else {
+                    showMessageBox("No saved game found for your user ID. Please start a new game.");
+                    console.log("No saved game found.");
+                }
+            } catch (e) {
+                console.error("Error loading document: ", e);
+                showMessageBox(`Failed to load game: ${e.message}. Please check your Firestore security rules and browser console for more details.`);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        /**
+         * Shows the home screen and hides the game screen.
+         */
+        function showHomeScreen() {
+            homeScreen.style.display = 'flex';
+            gameScreen.style.display = 'none';
+            // Stop canvas animation when on home screen to save resources
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+        }
+
+        /**
+         * Shows the game screen and hides the home screen.
+         */
+        function showGameScreen() {
+            homeScreen.style.display = 'none';
+            gameScreen.style.display = 'flex';
+            // Ensure canvas animation is running when game screen is active
+            if (!animationFrameId) {
+                animateActor();
+            }
+        }
+
+        // Event Listeners for buttons
+        newMovieBtn.addEventListener('click', showScriptOffersModal); // Now shows script offers modal
+        skipPromotionBtn.addEventListener('click', () => handlePromotionChoice(null)); // Handles skipping promotion
+        workHardBtn.addEventListener('click', showWorkHardModal); // Now shows work hard options
+        nextYearBtn.addEventListener('click', simulateNextYear);
+        resetBtn.addEventListener('click', () => resetSimulation(true));
+        saveNameBtn.addEventListener('click', () => {
+            const newName = actorNameInputEl.value.trim();
+            if (newName) {
+                actor.name = newName;
+                updateUI();
+                showMessageBox(`Actor name changed to: ${newName}`);
+            } else {
+                showMessageBox("Please enter a valid actor name.");
+            }
+        });
+        noOffersBtn.addEventListener('click', () => { // Handle "no offers" button in script modal
+            hideModal(scriptOffersModal, scriptOffersOverlay);
+            workHard(); // Actor takes a break
+            showMessageBox("No suitable script offers found. You decided to take a break this year.");
+        });
+
+        // New feature button listeners
+        investmentsBtn.addEventListener('click', showInvestmentsModal);
+        closeInvestmentsModalBtn.addEventListener('click', () => hideModal(investmentsModal, investmentsOverlay));
+        achievementsBtn.addEventListener('click', showAchievementsModal);
+        closeAchievementsModalBtn.addEventListener('click', () => hideModal(achievementsModal, achievementsOverlay));
+
+
+        // Home/Game Screen Buttons
+        newGameBtn.addEventListener('click', () => {
+            resetSimulation(false); // Don't delete Firestore save on new game, just reset local state
+            showGameScreen();
+        });
+        loadGameBtn.addEventListener('click', loadGame);
+        saveGameBtn.addEventListener('click', saveGame);
+        backToHomeBtn.addEventListener('click', showHomeScreen);
+
+
+        // Firebase Initialization and Authentication
+        async function initializeFirebaseAndAuth() {
+            showLoading();
+            console.log("Initializing Firebase...");
+            console.log("Firebase Config being used:", firebaseConfig);
+            try {
+                if (firebaseConfig.apiKey && firebaseConfig.apiKey.length > 10) {
+                    app = initializeApp(firebaseConfig);
+                    db = getFirestore(app);
+                    auth = getAuth(app);
+
+                    loadGameBtn.disabled = true;
+                    saveGameBtn.disabled = true;
+
+                    onAuthStateChanged(auth, async (user) => {
+                        if (user) {
+                            userId = user.uid;
+                            currentUserIdEl.textContent = userId;
+                            console.log("Authenticated with user ID:", userId);
+                            loadGameBtn.disabled = false;
+                            saveGameBtn.disabled = false;
+                        } else {
+                            try {
+                                if (initialAuthToken) {
+                                    await signInWithCustomToken(auth, initialAuthToken);
+                                } else {
+                                    await signInAnonymously(auth);
+                                }
+                                if (auth.currentUser) {
+                                    userId = auth.currentUser.uid;
+                                    currentUserIdEl.textContent = userId;
+                                    console.log("Authenticated (anon/custom) with user ID:", userId);
+                                    loadGameBtn.disabled = false;
+                                    saveGameBtn.disabled = false;
+                                } else {
+                                    console.warn("Authentication failed, no user found after sign-in attempt.");
+                                    currentUserIdEl.textContent = "Auth Failed";
+                                    showMessageBox("Authentication failed. Save/Load will not work. Please ensure Anonymous authentication is enabled in your Firebase project (Authentication -> Sign-in method tab). Check console for details.");
+                                }
+                            } catch (error) {
+                                console.error("Error during anonymous sign-in or custom token sign-in: ", error);
+                                currentUserIdEl.textContent = "Auth Error";
+                                showMessageBox(`Authentication failed: ${error.message}. This usually means your API Key is invalid or Anonymous authentication is not enabled. Please check your Firebase project settings.`);
+                            }
+                        }
+                        hideLoading();
+                    });
+                } else {
+                    console.error("Firebase API Key is missing or appears to be a placeholder. Please update firebaseConfig.apiKey.");
+                    currentUserIdEl.textContent = "Offline Mode (API Key Missing/Invalid)";
+                    showMessageBox("Firebase API Key is missing or invalid. Save/Load will not work. Please ensure your Firebase API Key is correctly set in the code.");
+                    loadGameBtn.disabled = true;
+                    saveGameBtn.disabled = true;
+                    hideLoading();
+                }
+            } catch (e) {
+                console.error("Failed to initialize Firebase:", e);
+                showMessageBox(`Failed to initialize Firebase: ${e.message}. Save/Load will not work. Check console for details.`);
+                currentUserIdEl.textContent = "Error (No Save/Load)";
+                loadGameBtn.disabled = true;
+                saveGameBtn.disabled = true;
+                hideLoading();
+            }
+        }
+
+        // Initial setup on window load
+        window.onload = function() {
+            initializeFirebaseAndAuth();
+            initializeActorAttributes(); // Initialize all actor attributes
+            addNewsItem("Welcome to the Bangladeshi Film Industry! A new star is born!"); // Initial news item
+            updateUI(); // Initial UI update
+            showHomeScreen(); // Start on the home screen
+        };
+
+    </script>
+</body>
+</html>
